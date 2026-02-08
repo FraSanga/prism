@@ -1,0 +1,305 @@
+{
+  "exercise": "prism",
+  "cases": [
+    {
+      "uuid": "ec65d3b3-f7bf-4015-8156-0609c141c4c4",
+      "description": "zero prisms",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 0 },
+        "prisms": []
+      },
+      "expected": {
+        "sequence": []
+      }
+    },
+    {
+      "uuid": "ec0ca17c-0c5f-44fb-89ba-b76395bdaf1c",
+      "description": "1 prism 1 hit",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 0 },
+        "prisms": [
+          { "id": 1, "x": 10, "y": 0, "angle": 0 }
+        ]
+      },
+      "expected": {
+        "sequence": [1]
+      }
+    },
+    {
+      "uuid": "0db955f2-0a27-4c82-ba67-197bd6202069",
+      "description": "1 prism 1 miss",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 0 },
+        "prisms": [
+          { "id": 1, "x": -10, "y": 0, "angle": 0 }
+        ]
+      },
+      "expected": {
+        "sequence": []
+      }
+    },
+    {
+      "uuid": "8d92485b-ebc0-4ee9-9b88-cdddb16b52da",
+      "description": "going up",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 90 },
+        "prisms": [
+          { "id": 1, "x": -10, "y": 0, "angle": 0 },
+          { "id": 2, "x": 10, "y": 0, "angle": 0 },
+          { "id": 3, "x": 0, "y": -10, "angle": 0 }
+        ]
+      },
+      "expected": {
+        "sequence": []
+      }
+    },
+    {
+      "uuid": "78295b3c-7438-492d-8010-9c63f5c223d7",
+      "description": "going down",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": -90 },
+        "prisms": [
+          { "id": 1, "x": -10, "y": 0, "angle": 0 },
+          { "id": 2, "x": 10, "y": 0, "angle": 0 },
+          { "id": 3, "x": 0, "y": 10, "angle": 0 }
+        ]
+      },
+      "expected": {
+        "sequence": []
+      }
+    },
+    {
+      "uuid": "acc723ea-597b-4a50-8d1b-b980fe867d4c",
+      "description": "going left",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 180 },
+        "prisms": [
+          { "id": 1, "x": 0, "y": -10, "angle": 0 },
+          { "id": 2, "x": 10, "y": 0, "angle": 0 },
+          { "id": 3, "x": 0, "y": 10, "angle": 0 }
+        ]
+      },
+      "expected": {
+        "sequence": []
+      }
+    },
+    {
+      "uuid": "3f19b9df-9eaa-4f18-a2db-76132f466d17",
+      "description": "still going left",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": -180 },
+        "prisms": [
+          { "id": 1, "x": 0, "y": -10, "angle": 0 },
+          { "id": 2, "x": 10, "y": 0, "angle": 0 },
+          { "id": 3, "x": 0, "y": 10, "angle": 0 }
+        ]
+      },
+      "expected": {
+        "sequence": []
+      }
+    },
+    {
+      "uuid": "96dacffb-d821-4cdf-aed8-f152ce063195",
+      "description": "frontside 2340",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 2340 },
+        "prisms": [
+          { "id": 1, "x": 10, "y": 0, "angle": 0 }
+        ]
+      },
+      "expected": {
+        "sequence": []
+      }
+    },
+    {
+      "uuid": "513a7caa-957f-4c5d-9820-076842de113c",
+      "description": "upward refraction",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 0 },
+        "prisms": [
+          { "id": 1, "x": 10, "y": 0, "angle": 90 },
+          { "id": 2, "x": 10, "y": 10, "angle": 0 }
+        ]
+      },
+      "expected": {
+        "sequence": [1, 2]
+      }
+    },
+    {
+      "uuid": "d452b7c7-9761-4ea9-81a9-2de1d73eb9ef",
+      "description": "downward refraction",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 0 },
+        "prisms": [
+          { "id": 1, "x": 10, "y": 0, "angle": -90 },
+          { "id": 2, "x": 10, "y": -10, "angle": 0 }
+        ]
+      },
+      "expected": {
+        "sequence": [1, 2]
+      }
+    },
+    {
+      "uuid": "",
+      "description": "same prism twice",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 0 },
+        "prisms": [
+          { "id": 1, "x": 10, "y": 0, "angle": 0 },
+          { "id": 2, "x": 20, "y": 0, "angle": -180 }
+        ]
+      },
+      "expected": {
+        "sequence": [1, 2, 1]
+      }
+    },
+    {
+      "uuid": "df5a60dd-7c7d-4937-ac4f-c832dae79e2e",
+      "description": "simple path",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 0 },
+        "prisms": [
+          { "id": 1, "x": 10, "y": 0, "angle": 90 },
+          { "id": 2, "x": 20, "y": 0, "angle": 0 },
+          { "id": 3, "x": 10, "y": 10, "angle": -90 },
+          { "id": 4, "x": 30, "y": 10, "angle": 45 }
+        ]
+      },
+      "expected": {
+        "sequence": [1, 3, 4]
+      }
+    },
+    {
+      "uuid": "cb33934e-197b-4ef9-9df3-6c830a4ed4b3",
+      "description": "spiral",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 0 },
+        "prisms": [
+          { "id": 1, "x": 10, "y": 0, "angle": 90 },
+          { "id": 2, "x": 10, "y": 10, "angle": 90 },
+          { "id": 3, "x": -10, "y": 10, "angle": 90 },
+          { "id": 4, "x": -10, "y": -10, "angle": 90 },
+          { "id": 5, "x": 20, "y": -10, "angle": 90 },
+          { "id": 6, "x": 20, "y": 20, "angle": 90 },
+          { "id": 7, "x": -20, "y": 20, "angle": 90 },
+          { "id": 8, "x": -20, "y": -20, "angle": 90 },
+          { "id": 9, "x": 30, "y": -20, "angle": 90 },
+          { "id": 10, "x": 30, "y": 30, "angle": 90 },
+          { "id": 11, "x": -30, "y": 30, "angle": 90 },
+          { "id": 12, "x": -30, "y": -30, "angle": 0 }
+        ]
+      },
+      "expected": {
+        "sequence": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+      }
+    },
+    {
+      "uuid": "1308fdf8-5586-462d-8ea9-ac1b42f9a21e",
+      "description": "mountains",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 45 },
+        "prisms": [
+          { "id": 1, "x": 10, "y": 10, "angle": -90 },
+          { "id": 2, "x": 20, "y": 0, "angle": 90 },
+          { "id": 3, "x": 30, "y": 10, "angle": -90 },
+          { "id": 4, "x": 40, "y": 0, "angle": 90 },
+          { "id": 5, "x": 50, "y": 10, "angle": -90 },
+          { "id": 6, "x": 60, "y": 0, "angle": 90 },
+          { "id": 7, "x": 70, "y": 10, "angle": -90 },
+          { "id": 8, "x": 80, "y": 0, "angle": 90 },
+          { "id": 9, "x": 90, "y": 10, "angle": -90 }
+        ]
+      },
+      "expected": {
+        "sequence": [1, 2, 3, 4, 5, 6, 7, 8, 9]
+      }
+    },
+    {
+      "uuid": "ddcd3fb3-4557-4e06-af25-d72369416cb2",
+      "description": "castle wall",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": -30, "angle": 90 },
+        "prisms": [
+          { "id": 1, "x": 0, "y": 40, "angle": -90 },
+          { "id": 2, "x": 10, "y": 40, "angle": -90 },
+          { "id": 3, "x": 10, "y": 30, "angle": 90 },
+          { "id": 4, "x": 20, "y": 30, "angle": 90 },
+          { "id": 5, "x": 20, "y": 40, "angle": -90 },
+          { "id": 6, "x": 30, "y": 40, "angle": -90 },
+          { "id": 7, "x": 30, "y": 30, "angle": 90 },
+          { "id": 8, "x": 40, "y": 30, "angle": 90 },
+          { "id": 9, "x": 40, "y": 40, "angle": -90 },
+          { "id": 10, "x": 50, "y": 40, "angle": -90 },
+          { "id": 11, "x": 50, "y": 30, "angle": 90 },
+          { "id": 12, "x": 60, "y": 30, "angle": 90 },
+          { "id": 13, "x": 60, "y": 40, "angle": -90 },
+          { "id": 14, "x": 70, "y": 40, "angle": -90 },
+          { "id": 15, "x": 70, "y": 30, "angle": 90 },
+          { "id": 16, "x": 80, "y": 30, "angle": 90 },
+          { "id": 17, "x": 80, "y": 40, "angle": -90 },
+          { "id": 18, "x": 90, "y": 40, "angle": -90 },
+          { "id": 19, "x": 90, "y": -30, "angle": 90 }
+        ]
+      },
+      "expected": {
+        "sequence": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+      }
+    },
+    {
+      "uuid": "85a808d5-c7e8-4e35-a1e6-9c900a5e1dd4",
+      "description": "tree",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": -40, "y": 0, "angle": 0 },
+        "prisms": [
+          { "id": 1, "x": -5, "y": 0, "angle": 90 },
+          { "id": 2, "x": -5, "y": 30, "angle": 90 },
+          { "id": 3, "x": -25, "y": 30, "angle": -90 },
+          { "id": 4, "x": -25, "y": 60, "angle": -90 },
+          { "id": 5, "x": 25, "y": 60, "angle": -90 },
+          { "id": 6, "x": 25, "y": 30, "angle": -90 },
+          { "id": 7, "x": 5, "y": 30, "angle": 90 },
+          { "id": 8, "x": 5, "y": 0, "angle": 90 },
+          { "id": 9, "x": 40, "y": 0, "angle": 0 }
+        ]
+      },
+      "expected": {
+        "sequence": [1, 2, 3, 4, 5, 6, 7, 8, 9]
+      }
+    },
+    {
+      "uuid": "c96461a2-f0b6-4ccd-8689-abfbb95b5b34",
+      "description": "emerald",
+      "property": "findSequence",
+      "input": {
+        "start": { "x": 0, "y": 0, "angle": 0 },
+        "prisms": [
+          { "id": 1, "x": 20, "y": 0, "angle": 45 },
+          { "id": 2, "x": 40, "y": 20, "angle": 45 },
+          { "id": 3, "x": 40, "y": 50, "angle": 45 },
+          { "id": 4, "x": 20, "y": 70, "angle": 90 },
+          { "id": 5, "x": 0, "y": 50, "angle": 45 },
+          { "id": 6, "x": 0, "y": 20, "angle": 45 }
+        ]
+      },
+      "expected": {
+        "sequence": [1, 2, 3, 4, 5, 6, 1]
+      }
+    }
+  ]
+}
