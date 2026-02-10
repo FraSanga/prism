@@ -4,8 +4,9 @@ import json
 import os
 
 # --- CONFIGURATION ---
-VISUALIZATION_MODE = 'SHOW' # Options: PNG, SHOW, NONE
+VISUALIZATION_MODE = 'NONE' # Options: PNG, SHOW, NONE
 ANGLE_TOLERANCE = 0.001
+MAX_ITERATIONS = 1000
 
 # Console colors
 GREEN = '\033[92m'
@@ -15,7 +16,7 @@ RESET = '\033[0m'
 def calculate_path(start_config, prisms_list):
     """
     Calculates the sequence of prisms hit by the ray.
-    WARNING: This code doesn't prevent infinite loops.
+    Raises RuntimeError if an infinite loop creates more than MAX_ITERATIONS hits.
     """
     current_x = start_config['x']
     current_y = start_config['y']
@@ -24,9 +25,13 @@ def calculate_path(start_config, prisms_list):
     sequence = []
     path_coords = [(current_x, current_y)]
     error_lines = [] 
+    iteration = 0
     
-    # Infinite loop: breaks only when no candidates are found
     while True:
+        iteration += 1
+        if iteration > MAX_ITERATIONS:
+            raise RuntimeError("Infinite Loop Detected")
+        
         rad_angle = math.radians(current_angle)
         candidates = []
         
@@ -131,13 +136,13 @@ def generate_plot(case_name, start_cfg, prisms, sequence, path_coords, error_lin
     ax.legend(loc='upper right')
     
     if VISUALIZATION_MODE == 'PNG':
-        # Create 'results' directory if it doesn't exist
-        results_dir = 'results'
-        os.makedirs(results_dir, exist_ok=True)
+        # Create 'png_result' directory if it doesn't exist
+        png_result_dir = 'png_result'
+        os.makedirs(png_result_dir, exist_ok=True)
         
         safe_name = "".join([c if c.isalnum() else "_" for c in case_name])
         # Join path safely
-        filename = os.path.join(results_dir, f"test_{safe_name}.png")
+        filename = os.path.join(png_result_dir, f"test_{safe_name}.png")
         
         plt.savefig(filename)
         plt.close(fig)
@@ -189,7 +194,7 @@ def run_tests():
 
     print(f"\nFinal Results: {passed_count}/{len(cases)} tests passed.")
     if VISUALIZATION_MODE == 'PNG':
-        print(f"Graphs saved in the 'results' folder.")
+        print(f"Graphs saved in the 'png_result' folder.")
 
 if __name__ == "__main__":
     run_tests()

@@ -34,4 +34,4 @@ python prism.py
 ```
 
 The script processes test cases from `canonical-data.json`.
-Generated graphs are saved in the `results/` directory.
+Generated graphs are saved in the `png_result/` directory.
