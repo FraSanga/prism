@@ -60,7 +60,7 @@ The side table displays in real-time:
 ## Data Export
 
 ### Saving JSON
-Clicking the **SAVE JSON** button:
+Clicking the **Export JSON** button:
 1. Creates a `json_result` folder in the program directory (if it does not exist).
 2. Generates a timestamped file (e.g., `test_20260210_043000.json`).
 3. The file contains the complete configuration (Start + Prisms + Expected Sequence) in a compact format.

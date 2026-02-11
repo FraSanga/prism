@@ -127,8 +127,8 @@ class AdvancedPrismEditor:
         ttk.Separator(self.panel, orient='horizontal').pack(fill='x', pady=10)
 
         # --- SECTION 5: FINAL ACTIONS ---
-        ttk.Button(self.panel, text="SAVE JSON", command=self.save_json_file).pack(fill=tk.X, pady=5)
-        ttk.Button(self.panel, text="RESET ALL", command=self.clear_all).pack(fill=tk.X, pady=5)
+        ttk.Button(self.panel, text="Export JSON", command=self.save_json_file).pack(fill=tk.X, pady=5)
+        ttk.Button(self.panel, text="Clean", command=self.clear_all).pack(fill=tk.X, pady=5)
         
         # --- EVENT BINDINGS ---
         self.canvas.bind("<Button-1>", self.on_mouse_down)
