@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 import math
 import json
 import copy 
@@ -47,11 +47,27 @@ class AdvancedPrismEditor:
         self.cut_ids = []
 
         # --- GUI LAYOUT ---
-        self.panel = ttk.Frame(root, padding="10", width=250)
+        main_frame = ttk.Frame(root)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.panel = ttk.Frame(main_frame, padding="10", width=250)
         self.panel.pack(side=tk.LEFT, fill=tk.Y)
+
+        right_frame = ttk.Frame(main_frame)
+        right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.toolbar = ttk.Frame(right_frame, padding="5")
+        self.toolbar.pack(side=tk.TOP, fill=tk.X)
+
+        self.auto_save_var = tk.BooleanVar(value=False)
+        self.chk_auto_save = ttk.Checkbutton(self.toolbar, text="Auto-save", variable=self.auto_save_var, command=self.toggle_auto_save)
+        self.chk_auto_save.pack(side=tk.LEFT, padx=5)
+
+        ttk.Button(self.toolbar, text="Save State", command=self.save_state).pack(side=tk.LEFT, padx=5)
+        ttk.Button(self.toolbar, text="Load State", command=self.load_state).pack(side=tk.LEFT, padx=5)
         
-        self.canvas = tk.Canvas(root, bg="#f0f0f0", cursor="crosshair")
-        self.canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        self.canvas = tk.Canvas(right_frame, bg="#f0f0f0", cursor="crosshair")
+        self.canvas.pack(fill=tk.BOTH, expand=True)
         self.canvas.focus_set()
 
         # --- SECTION 1: POSITION MODE ---
@@ -671,6 +687,85 @@ class AdvancedPrismEditor:
             messagebox.showinfo("Saved", f"File saved successfully in:\n{filepath}")
         except Exception as e:
             messagebox.showerror("Error", f"Cannot save file:\n{e}")
+
+    def save_state(self):
+        state = {
+            'p': self.prisms,
+            's': self.start_cfg,
+            'n': self.next_id,
+            'z': self.zoom,
+            'ox': self.offset_x,
+            'oy': self.offset_y
+        }
+        
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            title="Save Editor State"
+        )
+        
+        if not filepath:
+            return
+            
+        try:
+            with open(filepath, "w") as f:
+                json.dump(state, f, separators=(',', ':'))
+            messagebox.showinfo("Saved", f"Editor state saved successfully in:\n{filepath}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Cannot save state file:\n{e}")
+
+    def load_state(self):
+        filepath = filedialog.askopenfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            title="Load Editor State"
+        )
+        
+        if not filepath:
+            return
+            
+        try:
+            with open(filepath, "r") as f:
+                state = json.load(f)
+            
+            self.prisms = state['p']
+            self.start_cfg = state['s']
+            self.next_id = state['n']
+            self.zoom = state['z']
+            self.offset_x = state['ox']
+            self.offset_y = state['oy']
+            
+            self.refresh_ui()
+            self.save_state_for_undo()
+            messagebox.showinfo("Loaded", "Editor state loaded successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Cannot load state file:\n{e}")
+
+    def toggle_auto_save(self):
+        if self.auto_save_var.get():
+            self.auto_save_state()
+        else:
+            if hasattr(self, 'auto_save_timer'):
+                self.root.after_cancel(self.auto_save_timer)
+    
+    def auto_save_state(self):
+        state = {
+            'p': self.prisms,
+            's': self.start_cfg,
+            'n': self.next_id,
+            'z': self.zoom,
+            'ox': self.offset_x,
+            'oy': self.offset_y
+        }
+        
+        try:
+            with open("autosave.json", "w") as f:
+                json.dump(state, f, separators=(',', ':'))
+        except Exception as e:
+            print(f"Auto-save failed: {e}")
+            
+        if self.auto_save_var.get():
+            self.auto_save_timer = self.root.after(30000, self.auto_save_state)
 
     def start_pan(self, event):
         self.last_mouse_x = event.x

@@ -70,3 +70,11 @@ The generated file follows this structure:
 - `input`: Contains the `start` object and the `prisms` list.
 - `expected`: Contains the `sequence` of IDs hit by the laser.
 - Decimal numbers are rounded to the third decimal place.
+
+## Saving and Loading State
+
+The editor allows you to save and load the entire state of the editor, including the position of the prisms, the start configuration, and the zoom level.
+
+- **Save State:** Click the "Save State" button to save the current state of the editor to a file.
+- **Load State:** Click the "Load State" button to load a previously saved editor state from a file.
+- **Auto-save:** The "Auto-save" checkbox enables or disables the auto-save feature. When enabled, the editor will automatically save the current state to a file named `autosave.json` every 30 seconds.
