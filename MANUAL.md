@@ -31,11 +31,15 @@ The software operates in two distinct modes, selectable from the side panel:
 - **Right Drag (anywhere):** Pan the view (move the workspace).
 
 ### Keyboard Shortcuts
+- **Ctrl + Z:** Undo the last action.
+- **Ctrl + Y:** Redo the last undone action.
 - **Ctrl + C:** Copy selected prisms.
 - **Ctrl + X:** Cut selected prisms (paste once).
 - **Ctrl + V:** Activate paste mode. A "ghost" preview will follow the cursor. Click to confirm the position.
 - **Esc:** Cancel the current paste operation and clear the clipboard.
 - **Del / Backspace:** Delete selected prisms.
+
+*Note: On macOS, use Cmd instead of Ctrl.*
 
 ## Advanced Features
 

@@ -39,6 +39,13 @@ class AdvancedPrismEditor:
         self.clipboard_center = (0,0)
         self.clipboard_is_cut = False
 
+        # --- HISTORY (UNDO/REDO) ---
+        self.history = []
+        self.history_index = -1
+        self.is_undoredo_op = False
+        self.is_dragging = False
+        self.cut_ids = []
+
         # --- GUI LAYOUT ---
         self.panel = ttk.Frame(root, padding="10", width=250)
         self.panel.pack(side=tk.LEFT, fill=tk.Y)
@@ -116,6 +123,8 @@ class AdvancedPrismEditor:
         self.canvas.bind("<B3-Motion>", self.pan_view)
         
         # Shortcuts
+        self.root.bind("<Control-z>", self.undo_action)
+        self.root.bind("<Control-y>", self.redo_action)
         self.root.bind("<Control-c>", self.copy_selection)
         self.root.bind("<Control-x>", self.cut_selection)
         self.root.bind("<Control-v>", self.paste_selection)
@@ -123,6 +132,8 @@ class AdvancedPrismEditor:
         self.root.bind("<Escape>", self.clear_clipboard)
         
         # Mac Support
+        self.root.bind("<Command-z>", self.undo_action)
+        self.root.bind("<Command-y>", self.redo_action)
         self.root.bind("<Command-c>", self.copy_selection)
         self.root.bind("<Command-x>", self.cut_selection)
         self.root.bind("<Command-v>", self.paste_selection)
@@ -130,6 +141,7 @@ class AdvancedPrismEditor:
 
         self.draw_grid()
         self.draw_scene()
+        self.save_state_for_undo()
 
     # --- CORE LOGIC ---
 
@@ -182,14 +194,24 @@ class AdvancedPrismEditor:
         self.draw_scene(show_ghost=True)
 
     def cut_selection(self, event=None):
+        if not self.selected_ids:
+            return
         self.copy_selection() 
         self.clipboard_is_cut = True 
-        self.delete_selection() 
+        self.cut_ids = self.selected_ids.copy()
+        self.draw_scene() 
 
     def clear_clipboard(self, event=None):
         self.clipboard = []
         self.clipboard_is_cut = False
         self.draw_scene() 
+
+    def cancel_cut(self):
+        if self.cut_ids:
+            self.cut_ids = []
+            self.clipboard = []
+            self.clipboard_is_cut = False
+            self.draw_scene()
 
     def paste_selection(self, event=None):
         if not self.clipboard: return
@@ -231,12 +253,17 @@ class AdvancedPrismEditor:
             self.next_id += 1
         
         try:
+            if self.clipboard_is_cut:
+                self.prisms = [p for p in self.prisms if p['id'] not in self.cut_ids]
+                self.cut_ids = []
+
             prism.calculate_path(self.start_cfg, self.prisms)
             if self.clipboard_is_cut:
                 self.clipboard = []
                 self.clipboard_is_cut = False
             self.draw_scene()
             self.refresh_tree() 
+            self.save_state_for_undo()
             
         except RuntimeError:
             self.prisms = prisms_backup
@@ -246,7 +273,7 @@ class AdvancedPrismEditor:
             messagebox.showerror("Loop", "Cannot paste!\nThe configuration creates an infinite loop.")
 
 
-    def delete_selection(self, event=None):
+    def delete_selection(self, event=None, save_state=True):
         if not self.selected_ids: return
         
         prisms_backup = copy.deepcopy(self.prisms)
@@ -257,7 +284,9 @@ class AdvancedPrismEditor:
         try:
             prism.calculate_path(self.start_cfg, self.prisms)
             self.draw_scene()
-            self.refresh_tree() 
+            self.refresh_tree()
+            if save_state: 
+                self.save_state_for_undo()
         except RuntimeError:
             self.prisms = prisms_backup
             self.draw_scene()
@@ -307,6 +336,7 @@ class AdvancedPrismEditor:
     # --- MOUSE HANDLING ---
 
     def on_mouse_down(self, event):
+        self.cancel_cut()
         self.canvas.focus_set() 
         lx, ly = self.get_snapped_coords(event.x, event.y)
         
@@ -321,12 +351,14 @@ class AdvancedPrismEditor:
         if clicked_prism_idx is not None:
             self.selected_ids = []
             self.dragging_prism_idx = clicked_prism_idx 
+            self.is_dragging = True
             self.draw_scene()
             return
 
         dist_start = math.sqrt((self.start_cfg['x']-lx)**2 + (self.start_cfg['y']-ly)**2)
         if dist_start < (5 if self.mode_var.get() == "GRID" else 3):
             self.dragging_start = True
+            self.is_dragging = True
             self.selected_ids = [] 
             self.draw_scene()
             return
@@ -366,6 +398,10 @@ class AdvancedPrismEditor:
             self.canvas.coords(self.selection_rect, self.selection_start[0], self.selection_start[1], cur_x, cur_y)
 
     def on_mouse_up(self, event):
+        if self.is_dragging:
+            self.save_state_for_undo()
+            self.is_dragging = False
+
         self.dragging_prism_idx = None
         self.dragging_start = False
         self.refresh_tree() 
@@ -433,6 +469,7 @@ class AdvancedPrismEditor:
             self.selected_ids = [] 
             self.draw_scene()
             self.refresh_tree()
+            self.save_state_for_undo()
         except RuntimeError:
             self.prisms.pop()
             if backup_shooter is not None:
@@ -533,14 +570,22 @@ class AdvancedPrismEditor:
         for p in self.prisms:
             sx, sy = self.to_screen(p['x'], p['y'])
             color = "blue" if self.mode_var.get() == "GRID" else "orange"
-            if p['id'] in self.selected_ids:
+            
+            dash_style = ()
+            fill_color = color
+            if p['id'] in self.cut_ids:
+                dash_style = (4, 4)
+                fill_color = ""
+            elif p['id'] in self.selected_ids:
                 color = "#AA00FF" # Violet
+                fill_color = color
+
             if self.mode_var.get() == "GRID":
                 r = 6
-                self.canvas.create_rectangle(sx-r, sy-r, sx+r, sy+r, fill=color, outline="black", tags="scene")
+                self.canvas.create_rectangle(sx-r, sy-r, sx+r, sy+r, fill=fill_color, outline="black", tags="scene", dash=dash_style)
             else:
                 r = 5
-                self.canvas.create_oval(sx-r, sy-r, sx+r, sy+r, fill=color, outline="black", tags="scene")
+                self.canvas.create_oval(sx-r, sy-r, sx+r, sy+r, fill=fill_color, outline="black", tags="scene", dash=dash_style)
             self.canvas.create_text(sx, sy-15, text=f"{p['id']}", font=("Arial", 8, "bold"), tags="scene")
 
         # Start Point
@@ -560,11 +605,13 @@ class AdvancedPrismEditor:
         self.selected_ids = []
         self.draw_scene()
         self.refresh_tree()
+        self.save_state_for_undo()
 
     def update_start_manual(self):
         try:
             self.start_cfg['angle'] = float(self.entry_start.get())
             self.draw_scene()
+            self.save_state_for_undo()
         except: pass
 
     def save_json_file(self):
@@ -638,6 +685,54 @@ class AdvancedPrismEditor:
         self.last_mouse_y = event.y
         self.draw_grid()
         self.draw_scene()
+
+    def save_state_for_undo(self):
+        if self.is_undoredo_op:
+            return
+            
+        # If we are not at the end of the history, truncate it
+        if self.history_index < len(self.history) - 1:
+            self.history = self.history[:self.history_index + 1]
+
+        state = {
+            'prisms': copy.deepcopy(self.prisms),
+            'start_cfg': copy.deepcopy(self.start_cfg),
+            'next_id': self.next_id
+        }
+        self.history.append(state)
+        self.history_index += 1
+        
+        # Limit history size to prevent memory issues
+        if len(self.history) > 50:
+            self.history.pop(0)
+            self.history_index -= 1
+
+    def undo_action(self, event=None):
+        if self.cut_ids:
+            self.cut_ids = []
+            self.draw_scene()
+            return
+
+        if self.history_index > 0:
+            self.is_undoredo_op = True
+            self.history_index -= 1
+            state = self.history[self.history_index]
+            self.prisms = copy.deepcopy(state['prisms'])
+            self.start_cfg = copy.deepcopy(state['start_cfg'])
+            self.next_id = state['next_id']
+            self.refresh_ui()
+            self.is_undoredo_op = False
+
+    def redo_action(self, event=None):
+        if self.history_index < len(self.history) - 1:
+            self.is_undoredo_op = True
+            self.history_index += 1
+            state = self.history[self.history_index]
+            self.prisms = copy.deepcopy(state['prisms'])
+            self.start_cfg = copy.deepcopy(state['start_cfg'])
+            self.next_id = state['next_id']
+            self.refresh_ui()
+            self.is_undoredo_op = False
 
 if __name__ == "__main__":
     root = tk.Tk()
