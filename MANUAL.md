@@ -1,12 +1,12 @@
 # User Manual - Prism Editor PRO
 
-Prism Editor PRO is a graphical interface designed for creating optical configurations and generating JSON configuration files for the Prism Ray Tracer simulator.
+Prism Editor PRO is a graphical interface for creating and simulating optical configurations using prisms.
 
 ## Startup
 Run the main file via terminal:
 `python editor.py`
 
-Note: The `prism.py` file must be present in the same directory.
+Note: This editor uses the `prism.py` library for its core optical calculations.
 
 ## Positioning Modes
 The software operates in two distinct modes, selectable from the side panel:
@@ -56,20 +56,6 @@ The side table displays in real-time:
 - **ID:** Unique identifier of the prism.
 - **X / Y:** Spatial coordinates.
 - **Deg:** Rotation angle in degrees.
-
-## Data Export
-
-### Saving JSON
-Clicking the **Export JSON** button:
-1. Creates a `json_result` folder in the program directory (if it does not exist).
-2. Generates a timestamped file (e.g., `test_20260210_043000.json`).
-3. The file contains the complete configuration (Start + Prisms + Expected Sequence) in a compact format.
-
-### JSON Format
-The generated file follows this structure:
-- `input`: Contains the `start` object and the `prisms` list.
-- `expected`: Contains the `sequence` of IDs hit by the laser.
-- Decimal numbers are rounded to the third decimal place.
 
 ## Saving and Loading State
 

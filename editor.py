@@ -127,7 +127,7 @@ class AdvancedPrismEditor:
         ttk.Separator(self.panel, orient='horizontal').pack(fill='x', pady=10)
 
         # --- SECTION 5: FINAL ACTIONS ---
-        ttk.Button(self.panel, text="Export JSON", command=self.save_json_file).pack(fill=tk.X, pady=5)
+
         ttk.Button(self.panel, text="Clean", command=self.clear_all).pack(fill=tk.X, pady=5)
         
         # --- EVENT BINDINGS ---
@@ -612,8 +612,6 @@ class AdvancedPrismEditor:
         ey = sy - 20 * math.sin(rad)
         self.canvas.create_line(sx, sy, ex, ey, arrow=tk.LAST, fill="red", width=2, tags="scene")
 
-    # --- LIST & EXPORT ---
-
     def clear_all(self):
         self.prisms = []
         self.next_id = 1
@@ -630,78 +628,27 @@ class AdvancedPrismEditor:
             self.save_state_for_undo()
         except: pass
 
-    def save_json_file(self):
-        try:
-            seq, _, _ = prism.calculate_path(self.start_cfg, self.prisms)
-        except: seq = []
-        
-        # 1. Format Start
-        start_clean = {k: (round(v, 3) if isinstance(v, float) else v) for k, v in self.start_cfg.items()}
-        start_str = json.dumps(start_clean)
-        
-        # 2. Format Sequence
-        seq_str = json.dumps(seq)
-        
-        # 3. Format Prisms (Compact List)
-        prisms_lines = []
-        for p in self.prisms:
-            p_clean = {
-                "id": p['id'],
-                "x": int(p['x']) if self.mode_var.get() == "GRID" else round(p['x'], 3),
-                "y": int(p['y']) if self.mode_var.get() == "GRID" else round(p['y'], 3),
-                "angle": round(p['angle'], 3)
-            }
-            p_line = json.dumps(p_clean)
-            prisms_lines.append(f"        {p_line}")
-        
-        if prisms_lines:
-            prisms_str = "[\n" + ",\n".join(prisms_lines) + "\n      ]"
-        else:
-            prisms_str = "[]"
-
-        # 4. Construct Final JSON String
-        json_output = f'''{{
-  "description": "Exported from Prism Editor",
-  "property": "findSequence",
-  "input": {{
-    "start": {start_str},
-    "prisms": {prisms_str}
-  }},
-  "expected": {{
-    "sequence": {seq_str}
-  }}
-}}'''
-        
-        # LOGIC TO SAVE FILE
-        folder = "json_result"
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-            
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"test_{timestamp}.json"
-        filepath = os.path.join(folder, filename)
-        
-        try:
-            with open(filepath, "w") as f:
-                f.write(json_output)
-            messagebox.showinfo("Saved", f"File saved successfully in:\n{filepath}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Cannot save file:\n{e}")
-
     def save_state(self):
-        state = {
-            'p': self.prisms,
-            's': self.start_cfg,
-            'n': self.next_id,
-            'z': self.zoom,
-            'ox': self.offset_x,
-            'oy': self.offset_y
+        data_to_save = {
+            'prisms': self.prisms,
+            'start_cfg': self.start_cfg,
         }
         
+        # Default filename logic
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_filename = f"prism_data_{timestamp}.json"
+        
+        # Ensure prisms_data directory exists
+        save_directory = "prisms_data"
+        if not os.path.exists(save_directory):
+            os.makedirs(save_directory)
+
         filepath = filedialog.asksaveasfilename(
+            initialdir=save_directory,
             defaultextension=".json",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-            title="Save Editor State"
+            title="Save Prism Data",
+            initialfile=default_filename
         )
         
         if not filepath:
@@ -709,16 +656,23 @@ class AdvancedPrismEditor:
             
         try:
             with open(filepath, "w") as f:
-                json.dump(state, f, separators=(',', ':'))
-            messagebox.showinfo("Saved", f"Editor state saved successfully in:\n{filepath}")
+                json.dump(data_to_save, f, indent=2) # Use indent for readability
+            messagebox.showinfo("Saved", f"Prism data saved successfully in:\n{filepath}")
+            self.save_state_for_undo() # Save the new state to undo history
         except Exception as e:
             messagebox.showerror("Error", f"Cannot save state file:\n{e}")
 
     def load_state(self):
+        # Ensure prisms_data directory exists
+        load_directory = "prisms_data"
+        if not os.path.exists(load_directory):
+            os.makedirs(load_directory) # Create if it doesn't exist to prevent errors
+
         filepath = filedialog.askopenfilename(
+            initialdir=load_directory,
             defaultextension=".json",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-            title="Load Editor State"
+            title="Load Prism Data"
         )
         
         if not filepath:
@@ -726,18 +680,20 @@ class AdvancedPrismEditor:
             
         try:
             with open(filepath, "r") as f:
-                state = json.load(f)
+                data_loaded = json.load(f)
             
-            self.prisms = state['p']
-            self.start_cfg = state['s']
-            self.next_id = state['n']
-            self.zoom = state['z']
-            self.offset_x = state['ox']
-            self.offset_y = state['oy']
+            self.prisms = data_loaded.get('prisms', [])
+            self.start_cfg = data_loaded.get('start_cfg', {'x': 0, 'y': 0, 'angle': 0})
+            
+            # Update next_id based on loaded prisms
+            if self.prisms:
+                self.next_id = max(p['id'] for p in self.prisms) + 1
+            else:
+                self.next_id = 1
             
             self.refresh_ui()
-            self.save_state_for_undo()
-            messagebox.showinfo("Loaded", "Editor state loaded successfully.")
+            self.save_state_for_undo() # Add the loaded state to undo history
+            messagebox.showinfo("Loaded", "Prism data loaded successfully.")
         except Exception as e:
             messagebox.showerror("Error", f"Cannot load state file:\n{e}")
 
@@ -749,18 +705,21 @@ class AdvancedPrismEditor:
                 self.root.after_cancel(self.auto_save_timer)
     
     def auto_save_state(self):
-        state = {
-            'p': self.prisms,
-            's': self.start_cfg,
-            'n': self.next_id,
-            'z': self.zoom,
-            'ox': self.offset_x,
-            'oy': self.offset_y
+        data_to_save = {
+            'prisms': self.prisms,
+            'start_cfg': self.start_cfg,
         }
         
+        # Ensure prisms_data directory exists
+        save_directory = "prisms_data"
+        if not os.path.exists(save_directory):
+            os.makedirs(save_directory)
+            
+        autosave_filepath = os.path.join(save_directory, "autosave.json")
+        
         try:
-            with open("autosave.json", "w") as f:
-                json.dump(state, f, separators=(',', ':'))
+            with open(autosave_filepath, "w") as f:
+                json.dump(data_to_save, f, indent=2)
         except Exception as e:
             print(f"Auto-save failed: {e}")
             
