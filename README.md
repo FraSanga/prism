@@ -45,3 +45,17 @@ python editor.py
 ```
 
 For detailed instructions on how to use the editor, please refer to the [MANUAL.md](MANUAL.md) file.
+
+## Utilities
+
+### Shuffle Canonical Data
+
+The `utils/shuffle_prisms_and_ids.py` script can be used to shuffle the prisms and their IDs in the `canonical-data.json` file. This is useful for creating new test cases.
+
+To run the script:
+
+```bash
+python utils/shuffle_prisms_and_ids.py
+```
+
+This will create a new file named `shuffled-canonical-data.json` with the shuffled data.
