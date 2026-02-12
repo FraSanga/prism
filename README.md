@@ -27,6 +27,8 @@ pip install -r requirements.txt
 
 ## Usage
 
+![Prism Simulation Screenshot](images/Screenshot2.png)
+
 Run the simulation:
 
 ```bash
@@ -37,6 +39,8 @@ The script processes test cases from `canonical-data.json`.
 Generated graphs are saved in the `png_result/` directory.
 
 ## Editor
+
+![Editor Screenshot](images/Screenshot.png)
 
 This project includes a graphical editor to create and edit prism configurations. To run the editor, execute the following command:
 
