@@ -21,6 +21,15 @@ The software operates in two distinct modes, selectable from the side panel:
    - Coordinates are saved with 3-decimal precision (e.g., 10.125).
    - Ideal for testing complex reflections, specific angles, or physical limits.
 
+## Laser Sources
+The editor now supports multiple laser sources. You can manage them using the "LASER SOURCES" panel.
+
+*   **Add:** Adds a new laser source to the scene. The new laser will be placed at the current mouse position.
+*   **Remove:** Removes the currently selected laser source.
+*   **Laser List:** The list shows all laser sources with their ID, position, and angle. Click on a laser to make it the "active" laser. The active laser's path is drawn in a brighter color, and it is the one affected by the "Auto-Aim" feature.
+*   **Angle Tolerance:** This field controls the tolerance for a laser beam to hit a prism. A smaller value means the beam has to be more accurately aimed. You can set the value by typing in the box and pressing Enter or clicking "Set".
+*   **Max Iterations:** This is a safeguard against performance issues with very complex scenes. It sets the maximum number of steps for each laser path calculation. You can set the value by typing in the box and pressing Enter or clicking "Set".
+
 ## Interface Controls
 
 ### Mouse Controls
@@ -29,6 +38,7 @@ The software operates in two distinct modes, selectable from the side panel:
 - **Left Drag (on a prism):** Move the selected prism.
 - **Left Drag (on Start/Red Dot):** Move the laser origin point.
 - **Right Drag (anywhere):** Pan the view (move the workspace).
+- **Mouse Wheel:** Zoom in and out, centered on the mouse cursor.
 
 ### Keyboard Shortcuts
 - **Ctrl + Z:** Undo the last action.
@@ -48,8 +58,12 @@ Located in the side panel under "NEW PRISM".
 - **Enabled:** When creating or moving a prism, the previous element in the optical chain (or the Start point) automatically rotates to target the newly placed prism.
 - **Disabled:** Prisms maintain their fixed angle. You can manually enter the angle in the dedicated text field.
 
-### Infinite Loop Detection
-The software calculates the beam path in real-time. If an operation (move, create, paste) creates an infinite loop (e.g., two parallel mirrors), the action is blocked, and an error message is displayed to prevent the software from freezing.
+### Infinite Loop Detection & Visualization
+The software calculates the beam path in real-time. If a laser beam enters an infinite loop (e.g., between two parallel mirrors), the editor will detect this and visualize the loop.
+
+*   The path segment that forms the loop will be drawn in **red**.
+*   The non-looping part of the path will be drawn in the standard green color.
+*   A warning message will also be displayed on the canvas for the affected laser.
 
 ### Prism List
 The side table displays in real-time:
@@ -59,8 +73,8 @@ The side table displays in real-time:
 
 ## Saving and Loading State
 
-The editor allows you to save and load the entire state of the editor, including the position of the prisms, the start configuration, and the zoom level.
+The editor allows you to save and load the entire state of the editor. This includes the position of all prisms, all laser start configurations, the angle tolerance, and the max iterations setting.
 
-- **Save State:** Click the "Save State" button to save the current state of the editor to a file.
-- **Load State:** Click the "Load State" button to load a previously saved editor state from a file.
-- **Auto-save:** The "Auto-save" checkbox enables or disables the auto-save feature. When enabled, the editor will automatically save the current state to a file named `autosave.json` every 30 seconds.
+- **Save:** Click the "Save" button to save the current state of the editor to a file.
+- **Load:** Click the "Load" button to load a previously saved editor state from a file. The editor will automatically center and zoom to fit the loaded content.
+- **Auto-save:** The "Auto-save" checkbox enables or disables the auto-save feature. When enabled, the editor will automatically save the complete current state to a file named `autosave.json` every 30 seconds.
