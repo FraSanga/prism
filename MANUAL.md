@@ -53,10 +53,14 @@ The editor now supports multiple laser sources. You can manage them using the "L
 
 ## Advanced Features
 
-### Auto-Aim
+### Auto-Aim & Manual Angle Control
 Located in the side panel under "NEW PRISM".
-- **Enabled:** When creating or moving a prism, the previous element in the optical chain (or the Start point) automatically rotates to target the newly placed prism.
-- **Disabled:** Prisms maintain their fixed angle. You can manually enter the angle in the dedicated text field.
+- **Auto-Aim Enabled:** When creating or moving a prism, the previous element in the optical chain (or the Start point) automatically rotates to target the newly placed prism.
+- **Manual Angle Setting:** You can manually set or update the rotation of prisms using the **Angle reflection** field and the **Set** button (or by pressing Enter).
+    - **Single Prism:** Select a prism on the canvas or in the list, enter the desired angle, and click "Set".
+    - **Group of Prisms:** Use box selection (Left Drag on empty space) or select multiple prisms in the list, then enter an angle and click "Set" to update all selected prisms at once.
+    - **Last Placed:** If no selection is active, clicking "Set" will update the angle of the most recently placed prism.
+- **Auto-Aim Disabled:** Prisms maintain their fixed angle when being moved. New prisms are created using the angle currently in the text field.
 
 ### Infinite Loop Detection & Visualization
 The software calculates the beam path in real-time. If a laser beam enters an infinite loop (e.g., between two parallel mirrors), the editor will detect this and visualize the loop.

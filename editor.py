@@ -236,6 +236,8 @@ class AdvancedPrismEditor:
 
     def on_prism_select(self, event):
         selected_items = self.tree.selection()
+        if not selected_items: return
+        
         self.selected_ids = []
         for item_id in selected_items:
             # In Python 3, keys are strings.
@@ -250,6 +252,8 @@ class AdvancedPrismEditor:
 
     def on_laser_select(self, event):
         selected_item = self.laser_tree.focus()
+        if not selected_item: return
+        
         if selected_item:
             item_values = self.laser_tree.item(selected_item)['values']
             if item_values:
@@ -288,6 +292,14 @@ class AdvancedPrismEditor:
             x_val = int(p['x']) if self.mode_var.get() == "GRID" else round(p['x'], 3)
             y_val = int(p['y']) if self.mode_var.get() == "GRID" else round(p['y'], 3)
             self.tree.insert("", tk.END, iid=str(p['id']), values=(p['id'], x_val, y_val, round(p['angle'], 3)))
+        
+        # Restore selection
+        if self.selected_ids:
+            # Filter IDs that actually exist in the tree
+            valid_ids = [str(pid) for pid in self.selected_ids if self.tree.exists(str(pid))]
+            if valid_ids:
+                self.tree.selection_set(valid_ids)
+                self.tree.see(valid_ids[0])
             
     def refresh_laser_tree(self):
         for item in self.laser_tree.get_children(): self.laser_tree.delete(item)
@@ -400,6 +412,7 @@ class AdvancedPrismEditor:
     def on_mouse_down(self, event):
         self.cancel_cut()
         self.canvas.focus_set()
+        self.selecting = False
         lx, ly = self.get_snapped_coords(event.x, event.y)
 
         if self.placing_laser:
@@ -429,7 +442,10 @@ class AdvancedPrismEditor:
             if math.sqrt((p['x']-lx)**2 + (p['y']-ly)**2) < (5 if self.mode_var.get() == "GRID" else 3):
                 self.dragging_prism_idx = i
                 self.is_dragging = True
-                self.selected_ids = []
+                self.selected_ids = [p['id']]
+                self.tree.selection_set(str(p['id']))
+                self.tree.focus(str(p['id']))
+                self.tree.see(str(p['id']))
                 self.draw_scene()
                 return
 
@@ -455,7 +471,10 @@ class AdvancedPrismEditor:
         self.draw_scene()
 
     def on_mouse_up(self, event):
-        if self.is_dragging: self.save_state_for_undo()
+        need_refresh = False
+        if self.is_dragging: 
+            self.save_state_for_undo()
+            need_refresh = True
         self.is_dragging = self.dragging_prism_idx = self.dragging_start_idx = None
         self.cancel_placing_laser()
         
@@ -466,12 +485,16 @@ class AdvancedPrismEditor:
                 self.create_new_prism(event.x, event.y)
             else:
                 self.finalize_selection(*self.selection_start, event.x, event.y)
-        self.refresh_ui()
+        elif need_refresh:
+            self.refresh_ui()
 
     def finalize_selection(self, x1, y1, x2, y2):
         rx1, rx2 = sorted([x1, x2]); ry1, ry2 = sorted([y1, y2])
         lx1, ly1 = self.to_logical(rx1, ry1); lx2, ly2 = self.to_logical(rx2, ry2)
         self.selected_ids = [p['id'] for p in self.prisms if min(lx1,lx2) <= p['x'] <= max(lx1,lx2) and min(ly1,ly2) <= p['y'] <= max(ly1,ly2)]
+        self.tree.selection_set([str(pid) for pid in self.selected_ids])
+        if self.selected_ids:
+            self.tree.see(str(self.selected_ids[0]))
         self.draw_scene()
 
     def create_new_prism(self, screen_x, screen_y):
