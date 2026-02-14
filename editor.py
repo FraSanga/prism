@@ -26,6 +26,8 @@ class AdvancedPrismEditor:
         self.next_id = 1
         self.angle_tolerance = 0.01
         self.max_iterations = 1000
+        self.attenuation_factor = 0.0
+        self.attenuation_threshold = 0.01
         
         # --- MOUSE INTERACTION STATE ---
         self.dragging_prism_idx = None
@@ -72,6 +74,7 @@ class AdvancedPrismEditor:
 
         ttk.Button(self.toolbar, text="Save", command=self.save_state).pack(side=tk.LEFT, padx=5)
         ttk.Button(self.toolbar, text="Load", command=self.load_state).pack(side=tk.LEFT, padx=5)
+        ttk.Button(self.toolbar, text="Clean", command=self.clear_all).pack(side=tk.LEFT, padx=5)
         
         self.canvas = tk.Canvas(right_frame, bg="#f0f0f0", cursor="crosshair")
         self.canvas.pack(fill=tk.BOTH, expand=True)
@@ -82,7 +85,6 @@ class AdvancedPrismEditor:
         self.create_laser_sources_section()
         self.create_new_prism_section()
         self.create_prism_list_section()
-        self.create_final_actions_section()
 
         # --- EVENT BINDINGS ---
         self.canvas.bind("<Button-1>", self.on_mouse_down)
@@ -145,7 +147,7 @@ class AdvancedPrismEditor:
         f_laser_buttons = ttk.Frame(self.panel)
         f_laser_buttons.pack(fill=tk.X, pady=2)
         ttk.Button(f_laser_buttons, text="Add", command=self.add_laser).pack(side=tk.LEFT)
-        ttk.Button(f_laser_buttons, text="Remove", command=self.remove_laser).pack(side=tk.LEFT, padx=5)
+        ttk.Button(f_laser_buttons, text="Remove", command=self.remove_laser).pack(side=tk.RIGHT, padx=5)
 
         # Angle Tolerance
         f_angle_tolerance = ttk.Frame(self.panel)
@@ -167,7 +169,29 @@ class AdvancedPrismEditor:
         self.entry_max_iterations.insert(0, str(self.max_iterations))
         self.entry_max_iterations.bind("<Return>", lambda event: self.update_max_iterations())
         ttk.Button(f_max_iterations, text="Set", width=4, command=self.update_max_iterations).grid(row=0, column=2, sticky="e")
-        f_max_iterations.grid_columnconfigure(1, weight=1) # Make entry expand
+        f_max_iterations.grid_columnconfigure(1, weight=1)
+
+        # Attenuation Factor
+        f_att_factor = ttk.Frame(self.panel)
+        f_att_factor.pack(fill=tk.X, pady=5)
+        ttk.Label(f_att_factor, text="Attenuation:").grid(row=0, column=0, sticky="w")
+        self.entry_att_factor = ttk.Entry(f_att_factor, width=6)
+        self.entry_att_factor.grid(row=0, column=1, sticky="ew", padx=5)
+        self.entry_att_factor.insert(0, str(self.attenuation_factor))
+        self.entry_att_factor.bind("<Return>", lambda event: self.update_attenuation_factor())
+        ttk.Button(f_att_factor, text="Set", width=4, command=self.update_attenuation_factor).grid(row=0, column=2, sticky="e")
+        f_att_factor.grid_columnconfigure(1, weight=1)
+
+        # Attenuation Threshold
+        f_att_threshold = ttk.Frame(self.panel)
+        f_att_threshold.pack(fill=tk.X, pady=5)
+        ttk.Label(f_att_threshold, text="Min Intensity:").grid(row=0, column=0, sticky="w")
+        self.entry_att_threshold = ttk.Entry(f_att_threshold, width=6)
+        self.entry_att_threshold.grid(row=0, column=1, sticky="ew", padx=5)
+        self.entry_att_threshold.insert(0, str(self.attenuation_threshold))
+        self.entry_att_threshold.bind("<Return>", lambda event: self.update_attenuation_threshold())
+        ttk.Button(f_att_threshold, text="Set", width=4, command=self.update_attenuation_threshold).grid(row=0, column=2, sticky="e")
+        f_att_threshold.grid_columnconfigure(1, weight=1)
 
         ttk.Separator(self.panel, orient='horizontal').pack(fill='x', pady=10)
 
@@ -185,51 +209,137 @@ class AdvancedPrismEditor:
         except ValueError:
             messagebox.showerror("Invalid Input", "Max iterations must be a valid integer.")
 
+    def update_attenuation_factor(self):
+        try:
+            val = float(self.entry_att_factor.get())
+            if not (0.0 <= val <= 1.0): raise ValueError()
+            self.attenuation_factor = val
+            self.refresh_ui()
+        except ValueError:
+            messagebox.showerror("Invalid Input", "Attenuation must be between 0.0 and 1.0.")
+
+    def update_attenuation_threshold(self):
+        try:
+            val = float(self.entry_att_threshold.get())
+            if not (0.0 <= val <= 1.0): raise ValueError()
+            self.attenuation_threshold = val
+            self.refresh_ui()
+        except ValueError:
+            messagebox.showerror("Invalid Input", "Threshold must be between 0.0 and 1.0.")
+
     def create_new_prism_section(self):
         ttk.Label(self.panel, text="NEW PRISM", font=("Arial", 10, "bold")).pack(pady=5)
         self.auto_aim_var = tk.BooleanVar(value=False)
         self.chk_aim = ttk.Checkbutton(self.panel, text="Auto-Aim (Active Path)", variable=self.auto_aim_var, command=self.refresh_ui)
         self.chk_aim.pack(anchor="w", pady=2)
+
+        # Type
+        f_type = ttk.Frame(self.panel)
+        f_type.pack(fill=tk.X, pady=2)
+        ttk.Label(f_type, text="Type:").pack(side=tk.LEFT)
+        self.combo_prism_type = ttk.Combobox(f_type, values=["normal", "splitter", "combiner", "reducer", "amplifier"], state="readonly")
+        self.combo_prism_type.set("normal")
+        self.combo_prism_type.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.combo_prism_type.bind("<<ComboboxSelected>>", self.on_prism_type_change)
         
         f_angle_reflection = ttk.Frame(self.panel)
         f_angle_reflection.pack(fill=tk.X, pady=2)
-        ttk.Label(f_angle_reflection, text="Angle reflection:").grid(row=0, column=0, sticky="w")
+        ttk.Label(f_angle_reflection, text="Angle:").grid(row=0, column=0, sticky="w")
         self.entry_prism_angle = ttk.Entry(f_angle_reflection, width=6)
         self.entry_prism_angle.grid(row=0, column=1, sticky="ew", padx=5)
         self.entry_prism_angle.insert(0, "45")
-        self.entry_prism_angle.bind("<Return>", lambda event: self.update_prism_angle())
-        ttk.Button(f_angle_reflection, text="Set", width=4, command=self.update_prism_angle).grid(row=0, column=2, sticky="e")
-        f_angle_reflection.grid_columnconfigure(1, weight=1) # Make entry expand
+        self.entry_prism_angle.bind("<Return>", lambda event: self.update_prism_properties())
+        
+        # Intensity Factor
+        f_intensity = ttk.Frame(self.panel)
+        f_intensity.pack(fill=tk.X, pady=2)
+        ttk.Label(f_intensity, text="Intensity Factor:").grid(row=0, column=0, sticky="w")
+        self.entry_intensity_factor = ttk.Entry(f_intensity, width=6)
+        self.entry_intensity_factor.grid(row=0, column=1, sticky="ew", padx=5)
+        self.entry_intensity_factor.insert(0, "1.0")
+        self.entry_intensity_factor.configure(state="disabled")
+        self.entry_intensity_factor.bind("<Return>", lambda event: self.update_prism_properties())
+
+        ttk.Button(self.panel, text="Set All Properties", command=self.update_prism_properties).pack(fill=tk.X, pady=5)
 
         ttk.Separator(self.panel, orient='horizontal').pack(fill='x', pady=10)
 
-    def update_prism_angle(self):
+    def on_prism_type_change(self, event=None):
+        p_type = self.combo_prism_type.get()
+        if p_type == "normal":
+            self.entry_intensity_factor.delete(0, tk.END)
+            self.entry_intensity_factor.insert(0, "1.0")
+            self.entry_intensity_factor.configure(state="disabled")
+        else:
+            self.entry_intensity_factor.configure(state="normal")
+            if p_type == "amplifier":
+                curr = self.entry_intensity_factor.get()
+                try:
+                    if float(curr) <= 1.0:
+                        self.entry_intensity_factor.delete(0, tk.END)
+                        self.entry_intensity_factor.insert(0, "1.5")
+                except ValueError:
+                    self.entry_intensity_factor.delete(0, tk.END)
+                    self.entry_intensity_factor.insert(0, "1.5")
+            elif p_type in ["splitter", "combiner", "reducer"]:
+                curr = self.entry_intensity_factor.get()
+                try:
+                    if float(curr) > 1.0:
+                        self.entry_intensity_factor.delete(0, tk.END)
+                        self.entry_intensity_factor.insert(0, "0.5")
+                except ValueError:
+                    self.entry_intensity_factor.delete(0, tk.END)
+                    self.entry_intensity_factor.insert(0, "0.5")
+
+    def update_prism_properties(self):
         try:
             new_angle = float(self.entry_prism_angle.get())
+            p_type = self.combo_prism_type.get()
+            new_intensity = float(self.entry_intensity_factor.get())
+            
+            # Validation
+            if p_type == "normal":
+                new_intensity = 1.0
+            elif p_type == "amplifier":
+                if new_intensity <= 1.0:
+                    messagebox.showerror("Invalid Input", "Amplifier intensity factor must be > 1.0")
+                    return
+            else:
+                if not (0.0 <= new_intensity <= 1.0):
+                    messagebox.showerror("Invalid Input", f"{p_type.capitalize()} intensity factor must be between 0.0 and 1.0")
+                    return
+
+            targets = []
             if self.selected_ids:
-                for p in self.prisms:
-                    if p['id'] in self.selected_ids:
-                        p['angle'] = new_angle
+                targets = [p for p in self.prisms if p['id'] in self.selected_ids]
             elif self.last_placed_prism_id is not None:
-                for p in self.prisms:
-                    if p['id'] == self.last_placed_prism_id:
-                        p['angle'] = new_angle
-                        break
+                targets = [p for p in self.prisms if p['id'] == self.last_placed_prism_id]
                 self.last_placed_prism_id = None
+            
+            for p in targets:
+                p['angle'] = new_angle
+                p['type'] = p_type
+                p['intensity_factor'] = new_intensity
             
             self.refresh_ui()
             self.save_state_for_undo()
         except ValueError:
-            messagebox.showerror("Invalid Input", "Angle must be a valid number.")
+            messagebox.showerror("Invalid Input", "Values must be valid numbers.")
+
+    def update_prism_angle(self):
+        # Redirect to update_prism_properties
+        self.update_prism_properties()
 
     def create_prism_list_section(self):
         ttk.Label(self.panel, text="PRISM LIST", font=("Arial", 10, "bold")).pack(pady=5)
-        columns = ("id", "x", "y", "ang")
+        columns = ("id", "type", "x", "y", "ang", "factor")
         self.tree = ttk.Treeview(self.panel, columns=columns, show="headings", height=10)
         self.tree.heading("id", text="ID"); self.tree.column("id", width=30, anchor="center")
-        self.tree.heading("x", text="X"); self.tree.column("x", width=55, anchor="center")
-        self.tree.heading("y", text="Y"); self.tree.column("y", width=55, anchor="center")
-        self.tree.heading("ang", text="Deg"); self.tree.column("ang", width=50, anchor="center")
+        self.tree.heading("type", text="Type"); self.tree.column("type", width=60, anchor="center")
+        self.tree.heading("x", text="X"); self.tree.column("x", width=45, anchor="center")
+        self.tree.heading("y", text="Y"); self.tree.column("y", width=45, anchor="center")
+        self.tree.heading("ang", text="Deg"); self.tree.column("ang", width=40, anchor="center")
+        self.tree.heading("factor", text="Fac"); self.tree.column("factor", width=40, anchor="center")
         self.tree.pack(fill=tk.BOTH, expand=True, pady=5)
         self.tree.bind("<<TreeviewSelect>>", self.on_prism_select)
         ttk.Separator(self.panel, orient='horizontal').pack(fill='x', pady=10)
@@ -245,10 +355,18 @@ class AdvancedPrismEditor:
             if values:
                 self.selected_ids.append(values[0])
         
-        self.draw_scene()
+        if len(self.selected_ids) == 1:
+            p = next((p for p in self.prisms if p['id'] == self.selected_ids[0]), None)
+            if p:
+                self.combo_prism_type.set(p.get('type', 'normal'))
+                self.on_prism_type_change()
+                self.entry_prism_angle.delete(0, tk.END)
+                self.entry_prism_angle.insert(0, str(p['angle']))
+                if p.get('type', 'normal') != 'normal':
+                    self.entry_intensity_factor.delete(0, tk.END)
+                    self.entry_intensity_factor.insert(0, str(p.get('intensity_factor', 1.0)))
 
-    def create_final_actions_section(self):
-        ttk.Button(self.panel, text="Clean", command=self.clear_all).pack(fill=tk.X, pady=5)
+        self.draw_scene()
 
     def on_laser_select(self, event):
         selected_item = self.laser_tree.focus()
@@ -291,7 +409,9 @@ class AdvancedPrismEditor:
         for p in self.prisms:
             x_val = int(p['x']) if self.mode_var.get() == "GRID" else round(p['x'], 3)
             y_val = int(p['y']) if self.mode_var.get() == "GRID" else round(p['y'], 3)
-            self.tree.insert("", tk.END, iid=str(p['id']), values=(p['id'], x_val, y_val, round(p['angle'], 3)))
+            p_type = p.get('type', 'normal')
+            p_factor = p.get('intensity_factor', 1.0)
+            self.tree.insert("", tk.END, iid=str(p['id']), values=(p['id'], p_type, x_val, y_val, round(p['angle'], 3), p_factor))
         
         # Restore selection
         if self.selected_ids:
@@ -510,7 +630,19 @@ class AdvancedPrismEditor:
             shooter['angle'] = new_angle
             if shooter_idx == -1: self.refresh_laser_tree()
 
-        self.prisms.append({"id": self.next_id, "x": lx, "y": ly, "angle": angle})
+        p_type = self.combo_prism_type.get()
+        try:
+            p_intensity = float(self.entry_intensity_factor.get())
+        except ValueError:
+            p_intensity = 1.0
+
+        self.prisms.append({
+            "id": self.next_id, 
+            "x": lx, "y": ly, 
+            "angle": angle,
+            "type": p_type,
+            "intensity_factor": p_intensity
+        })
         self.last_placed_prism_id = self.next_id
         newly_added_prism_id = self.next_id # Store the ID for scrolling
         
@@ -581,38 +713,40 @@ class AdvancedPrismEditor:
 
     def draw_scene(self, show_ghost=False):
         self.canvas.delete("scene")
-        results = prism.calculate_all_paths(self.start_configs, self.prisms, self.angle_tolerance, self.max_iterations)
+        results = prism.calculate_all_paths(
+            self.start_configs, self.prisms, self.angle_tolerance, self.max_iterations,
+            self.attenuation_factor, self.attenuation_threshold
+        )
 
         error_messages = []
+        bg_color = self.canvas.cget("bg")
         for i, res in enumerate(results):
             if res['error']:
                 error_messages.append(f"⚠️ LASER {self.start_configs[i]['id']}: {res['error']}")
 
-            color = "#00aa00" if i == self.active_start_idx else "#88ff88"
+            base_color = "#00aa00" if i == self.active_start_idx else "#88ff88"
             
-            if res['path_coords']:
-                path = res['path_coords']
-                if len(path) >= 2:
-                    flat_coords = [c for p in path for c in self.to_screen(*p)]
-                    self.canvas.create_line(flat_coords, fill=color, width=2, tags="scene")
+            if "segments" in res:
+                for seg in res["segments"]:
+                    x1, y1, x2, y2, i1, i2 = seg
+                    avg_intensity = (i1 + i2) / 2.0
+                    color = self.interpolate_color(base_color, bg_color, avg_intensity)
+                    sx1, sy1 = self.to_screen(x1, y1)
+                    sx2, sy2 = self.to_screen(x2, y2)
+                    self.canvas.create_line(round(sx1), round(sy1), round(sx2), round(sy2), fill=color, width=2, tags="scene")
 
-            if res['loop_coords']:
+            if res.get('loop_coords'):
                 loop_path = res['loop_coords']
                 loop_path.append(loop_path[0])
                 if len(loop_path) >= 2:
                     flat_coords = [c for p in loop_path for c in self.to_screen(*p)]
-                    self.canvas.create_line(flat_coords, fill="red", width=2, tags="scene")
-            
-            if res['error_lines']:
-                for error_line_segment in res['error_lines']:
-                    start_point, pos_point, neg_point = error_line_segment
-                    
-                    flat_coords_pos = [c for p in [start_point, pos_point] for c in self.to_screen(*p)]
-                    self.canvas.create_line(flat_coords_pos, fill="orange", width=1, dash=(2,2), tags="scene")
-                    
-                    flat_coords_neg = [c for p in [start_point, neg_point] for c in self.to_screen(*p)]
-                    self.canvas.create_line(flat_coords_neg, fill="orange", width=1, dash=(2,2), tags="scene")
-        
+                    # Use a simple, intense red for loops that might have low intensity
+                    self.canvas.create_line(round(flat_coords[0]), round(flat_coords[1]), round(flat_coords[2]), round(flat_coords[3]), fill="red", width=2, tags="scene")
+                    for i in range(1, len(loop_path) - 1):
+                         sx1, sy1 = self.to_screen(*loop_path[i])
+                         sx2, sy2 = self.to_screen(*loop_path[i+1])
+                         self.canvas.create_line(round(sx1), round(sy1), round(sx2), round(sy2), fill="red", width=2, tags="scene")
+
         for i, msg in enumerate(error_messages):
             self.canvas.create_text(10, 10 + i*20, anchor="nw", text=msg, fill="red", font=("Arial", 14, "bold"), tags="scene")
 
@@ -622,6 +756,20 @@ class AdvancedPrismEditor:
             self.draw_ghost_laser()
         self.draw_prisms()
         self.draw_start_points()
+
+    def interpolate_color(self, color_hex, bg_hex, intensity):
+        try:
+            c_rgb = [int(color_hex[i:i+2], 16) for i in (1, 3, 5)]
+            # Handle named colors or different bg formats if necessary
+            if bg_hex.startswith("#"):
+                b_rgb = [int(bg_hex[i:i+2], 16) for i in (1, 3, 5)]
+            else:
+                b_rgb = [240, 240, 240] # Default #f0f0f0
+            
+            res_rgb = [int(b + (c - b) * intensity) for c, b in zip(c_rgb, b_rgb)]
+            return f'#{res_rgb[0]:02x}{res_rgb[1]:02x}{res_rgb[2]:02x}'
+        except:
+            return color_hex
 
     def draw_ghost_paste(self):
         if self.clipboard and not self.selecting and self.dragging_prism_idx is None and self.dragging_start_idx is None:
@@ -640,20 +788,35 @@ class AdvancedPrismEditor:
             sx_anchor, sy_anchor = self.to_screen(shooter['x'], shooter['y'])
             lx_snap, ly_snap = self.get_snapped_coords(*self.ghost_cursor_pos)
             sx_snap, sy_snap = self.to_screen(lx_snap, ly_snap)
-            self.canvas.create_line(sx_anchor, sy_anchor, sx_snap, sy_snap, fill="#888", dash=(4, 4), tags="scene")
+            self.canvas.create_line(round(sx_anchor), round(sy_anchor), round(sx_snap), round(sy_snap), fill="#888", dash=(4, 4), tags="scene")
             if self.auto_aim_var.get():
                 self.canvas.create_oval(sx_anchor-4, sy_anchor-4, sx_anchor+4, sy_anchor+4, outline="magenta", width=2, tags="scene")
 
     def draw_prisms(self):
         for p in self.prisms:
             sx, sy = self.to_screen(p['x'], p['y'])
+            p_type = p.get('type', 'normal')
+            p_factor = p.get('intensity_factor', 1.0)
+            
             color = "blue" if self.mode_var.get() == "GRID" else "orange"
             fill_color, dash_style = color, ()
             if p['id'] in self.cut_ids: fill_color, dash_style = "", (4, 4)
-            elif p['id'] in self.selected_ids: fill_color = "#AA00FF"
+            elif p['id'] in self.selected_ids: fill_color = "violet"
+            
+            # Special colors for types
+            outline_color = "black"
+            if p_type == "splitter": outline_color = "cyan"
+            elif p_type == "combiner": outline_color = "yellow"
+            elif p_type == "reducer": outline_color = "brown"
+            elif p_type == "amplifier": outline_color = "white"
+
             r = 6 if self.mode_var.get() == "GRID" else 5
-            self.canvas.create_rectangle(sx-r, sy-r, sx+r, sy+r, fill=fill_color, outline="black", tags="scene", dash=dash_style) if self.mode_var.get() == "GRID" else self.canvas.create_oval(sx-r, sy-r, sx+r, sy+r, fill=fill_color, outline="black", tags="scene", dash=dash_style)
-            self.canvas.create_text(sx, sy-15, text=f"{p['id']}", font=("Arial", 8, "bold"), tags="scene")
+            self.canvas.create_rectangle(sx-r, sy-r, sx+r, sy+r, fill=fill_color, outline=outline_color, width=2 if p_type != "normal" else 1, tags="scene", dash=dash_style) if self.mode_var.get() == "GRID" else self.canvas.create_oval(sx-r, sy-r, sx+r, sy+r, fill=fill_color, outline=outline_color, width=2 if p_type != "normal" else 1, tags="scene", dash=dash_style)
+            
+            label = f"{p['id']}"
+            if p_type != "normal":
+                label += f" ({p_type[0].upper()}:{p_factor})"
+            self.canvas.create_text(sx, sy-15, text=label, font=("Arial", 8, "bold"), tags="scene")
 
     def draw_start_points(self):
         for i, cfg in enumerate(self.start_configs):
@@ -662,7 +825,7 @@ class AdvancedPrismEditor:
             self.canvas.create_oval(sx-5, sy-5, sx+5, sy+5, fill=fill_color, tags="scene")
             rad = math.radians(cfg['angle'])
             ex, ey = sx + 20 * math.cos(rad), sy - 20 * math.sin(rad)
-            self.canvas.create_line(sx, sy, ex, ey, arrow=tk.LAST, fill=fill_color, width=2, tags="scene")
+            self.canvas.create_line(round(sx), round(sy), round(ex), round(ey), arrow=tk.LAST, fill=fill_color, width=2, tags="scene")
             self.canvas.create_text(sx, sy+15, text=f"L{cfg['id']}", font=("Arial", 8, "bold"), fill="red", tags="scene")
 
     def clear_all(self):
@@ -675,7 +838,9 @@ class AdvancedPrismEditor:
             'prisms': self.prisms, 
             'start_configs': self.start_configs,
             'angle_tolerance': self.angle_tolerance,
-            'max_iterations': self.max_iterations
+            'max_iterations': self.max_iterations,
+            'attenuation_factor': self.attenuation_factor,
+            'attenuation_threshold': self.attenuation_threshold
         }
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         default_filename = f"prism_data_{timestamp}.json"
@@ -703,10 +868,17 @@ class AdvancedPrismEditor:
             self.start_configs = data.get('start_configs', [{'x':0,'y':0,'angle':0,'id':1}])
             self.angle_tolerance = data.get('angle_tolerance', 0.01)
             self.max_iterations = data.get('max_iterations', 1000)
+            self.attenuation_factor = data.get('attenuation_factor', 0.0)
+            self.attenuation_threshold = data.get('attenuation_threshold', 0.01)
+            
             self.entry_angle_tolerance.delete(0, tk.END)
             self.entry_angle_tolerance.insert(0, str(self.angle_tolerance))
             self.entry_max_iterations.delete(0, tk.END)
             self.entry_max_iterations.insert(0, str(self.max_iterations))
+            self.entry_att_factor.delete(0, tk.END)
+            self.entry_att_factor.insert(0, str(self.attenuation_factor))
+            self.entry_att_threshold.delete(0, tk.END)
+            self.entry_att_threshold.insert(0, str(self.attenuation_threshold))
 
             if 'start_cfg' in data: # Legacy support
                 self.start_configs = [{'id':1, **data['start_cfg']}]
